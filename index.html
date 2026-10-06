@@ -234,78 +234,62 @@ function switchTab(t) {
 }
 
 // === АДМИНКА ТРЕНЕРА ===
-function buildAdmin() {
-  document.getElementById("admin-ui").classList.remove("hidden");
-  const f = serverData.adminData.finance;
-  document.getElementById("fin-box").innerHTML = `
-    <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">Всего (месяц)</p><p p class="text-lg font-black text-amber-400">${f.total} ₽</p></div>
-    <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">ЮKassa</p><p class="text-lg font-black text-blue-400">${f.yandex} ₽</p></div>
-    <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">Наличные</p><p class="text-lg font-black text-green-400">${f.cash} ₽</p></div>
-    <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">Карты Сбер/Т</p><p class="text-lg font-black text-purple-400">${f.sber + f.tbank} ₽</p></div>
-  `;
-  
-  const tDiv = document.getElementById("lessons-today");
-  tDiv.innerHTML = serverData.adminData.recordsToday.length === 0 ? "Сегодня тренировок в графике нет" : "";
-  
-  serverData.adminData.recordsToday.forEach(r => {
-    tDiv.innerHTML += `
-      <div class="bg-black/20 p-3 rounded-xl flex justify-between items-center card border border-neutral-800/40">
-        <div>
-          <span class="text-amber-400 font-bold block text-sm">${r}</span>
-          <span class="text-neutral-300 font-medium">${r}</span>
-          <span class="opacity-50 block text-[11px] mt-0.5">Комм: ${r || 'нет'}</span>
-        </div>
-        <button onclick="closeLesson(${r})" class="bg-amber-500 text-black px-3 py-1.5 rounded-lg font-black transition active:scale-95 shadow-md shadow-amber-950/20">Завершить</button>
-      </div>
-    `;
-  });
-  filterAthletes("");
-}
+    function buildAdmin() {
+      document.getElementById("admin-ui").classList.remove("hidden");
+      const f = serverData.adminData.finance;
+      document.getElementById("fin-box").innerHTML = `
+        <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">Всего (месяц)</p><p class="text-lg font-black text-amber-400">${f.total} ₽</p></div>
+        <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">ЮKassa</p><p class="text-lg font-black text-blue-400">${f.yandex} ₽</p></div>
+        <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">Наличные</p><p class="text-lg font-black text-green-400">${f.cash} ₽</p></div>
+        <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">Карты Сбер/Т</p><p class="text-lg font-black text-purple-400">${f.sber + f.tbank} ₽</p></div>
+      `;
 
-function filterAthletes(q) {
-  const list = document.getElementById("athletes-list");
-  list.innerHTML = "";
-  const filtered = serverData.adminData.clients.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
-  
-  filtered.forEach(c => {
-    let historyHtml = c.history.map(h => `
-      <li class="border-b border-neutral-800/30 pb-1 last:border-0">• <b class="text-neutral-300">${h.date} (${h.time}):</b> <span class="opacity-80">Программа: ${h.prog || 'нет'}, Самосв: ${h.cond || 'нет'}</span></li>
-    `).join("");
-    
-    list.innerHTML += `
-      <div class="p-3.5 bg-neutral-900 border border-neutral-800/80 rounded-xl space-y-2 text-xs card">
-        <div class="flex justify-between font-bold text-sm border-b border-neutral-800 pb-1.5"><span>${c.name}</span><span class="text-emerald-400">Баллы: ${c.balance}</span></div>
-        <p class="opacity-70"><span class="font-semibold text-neutral-400">🎯 Цель:</span> ${c.target || 'Не указана'}</p>
-        <p class="text-red-400 font-medium"><span class="font-semibold text-neutral-400">⚠️ Анамнез / Противопоказания:</span> <span id="an-${c.tg_id}" class="underline decoration-red-900/50">${c.anamnesis || 'Противопоказаний нет'}</span></p>
-        <button onclick="changeAnamnesis(${c.tg_id})" class="text-blue-400 font-bold hover:text-blue-300 transition text-[11px]">+ Редактировать карточку здоровья</button>
-        <div class="bg-black/30 p-2.5 rounded-xl mt-1 space-y-1"><p class="font-bold opacity-40 text-[10px] uppercase tracking-wider">История последних 5 тренировок:</p><ul class="space-y-1.5 text-[11px] opacity-80">${historyHtml || '<span class="opacity-40">История тренировок в базе пуста</span>'}</ul></div>
-      </div>
-    `;
-  });
-}
+      const tDiv = document.getElementById("lessons-today");
+      tDiv.innerHTML = serverData.adminData.recordsToday.length === 0 ? "<p class='opacity-40 py-2 text-center'>Сегодня тренировок в графике нет</p>" : "";
+      serverData.adminData.recordsToday.forEach(r => {
+        tDiv.innerHTML += `
+          <div class="bg-black/20 p-3 rounded-xl flex justify-between items-center card border border-neutral-800/40">
+            <div><span class="text-amber-400 font-bold block text-sm">${r[1]}</span><span class="text-neutral-300 font-medium">${r[2]}</span> <span class="opacity-50 block text-[11px] mt-0.5">Комм: ${r[9] || 'нет'}</span></div>
+            <button onclick="closeLesson(${r[0]}) class="bg-amber-500 text-black px-3 py-1.5 rounded-lg font-black transition active:scale-95 shadow-md shadow-amber-950/20">Завершить</button>
+          </div>
+        `;
+      });
+      filterAthletes("");
+    }
 
-function closeLesson(sid) {
-  const p = prompt("Что выполняли на тренировке (Упражнения, веса, подходы)?");
-  const c = prompt("Оцените самочувствие и пульсовую зону клиента:");
-  if(p && c) {
-    fetch(webAppUrl, {
-      method: "POST",
-      body: JSON.stringify({ action: "complete_lesson", slot_id: sid, program: p, condition: c })
-    })
-    .then(() => {
-      alert("Запись успешно внесена в архив дневника атлета!");
-      buildAdmin();
-    });
-  }
-}
+    function filterAthletes(q) {
+      const list = document.getElementById("athletes-list"); list.innerHTML = "";
+      const filtered = serverData.adminData.clients.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
+      filtered.forEach(c => {
+        let historyHtml = c.history.map(h => `<li class="border-b border-neutral-800/30 pb-1 last:border-0">• <b class="text-neutral-300">${h.date} (${h.time}):</b> <span class="opacity-80">Программа: ${h.prog || 'нет'}, Самочувствие: ${h.cond || 'нет'}</span></li>`).join("");
+        list.innerHTML += `
+          <div class="p-3.5 bg-neutral-900 border border-neutral-800/80 rounded-xl space-y-2 text-xs card">
+            <div class="flex justify-between font-bold text-sm border-b border-neutral-800 pb-1.5"><span>${c.name}</span><span class="text-emerald-400">Баллы: ${c.balance}</span></div>
+            <p class="opacity-70"><span class="font-semibold text-neutral-400">🎯 Цель:</span> ${c.target || 'Не указана'}</p>
+            <p class="text-red-400 font-medium"><span class="font-semibold text-neutral-400">⚠️ Анамнез / Противопоказания:</span> <span id="an-${c.tg_id}" class="underline decoration-red-900/50">${c.anamnesis || 'Противопоказаний нет'}</span></p>
+            <button onclick="changeAnamnesis(${c.tg_id})" class="text-blue-400 font-bold hover:text-blue-300 transition text-[11px]">+ Редактировать карточку здоровья</button>
+            <div class="bg-black/30 p-2.5 rounded-xl mt-1 space-y-1"><p class="font-bold opacity-40 text-[10px] uppercase tracking-wider">История последних 5 тренировок:</p><ul class="space-y-1.5 text-[11px] opacity-80">${historyHtml || '<span class="opacity-40">История тренировок в базе пуста</span>'}</ul></div>
+          </div>
+        `;
+      });
+    }
 
-function changeAnamnesis(cid) {
-  const a = prompt("Введите новые данные ограничений и противопоказаний здоровья:");
-  if(a !== null) {
-    fetch(webAppUrl, {
-      method: "POST",
-      body: JSON.stringify({ action: "update_anamnesis", client_id: cid, anamnesis: a })
-    })
-    .then(() => document.getElementById("an-"+cid).innerText = a || 'Противопоказаний нет');
-  }
-}
+    function closeLesson(sid) {
+      const p = prompt("Что выполняли на тренировке (Упражнения, веса, подходы)?"); 
+      const c = prompt("Оцените самочувствие и пульсовую зону клиента:");
+      if(p && c) {
+        fetch(webAppUrl, { method: "POST", body: JSON.stringify({ action: "complete_lesson", slot_id: sid, program: p, condition: c }) })
+        .then(() => { alert("Запись успешно внесена в архив дневника атлета!"); buildAdmin(); });
+      }
+    }
+
+    function changeAnamnesis(cid) {
+      const a = prompt("Введите новые данные ограничений и противопоказаний здоровья:");
+      if(a !== null) {
+        fetch(webAppUrl, { method: "POST", body: JSON.stringify({ action: "update_anamnesis", client_id: cid, anamnesis: a }) })
+        .then(() => document.getElementById("an-"+cid).innerText = a || 'Противопоказаний нет');
+      }
+    }
+  </script>
+</body>
+</html>
