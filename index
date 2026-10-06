@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Фитнес Студия CRM</title>
+  <script src="https://telegram.org"></script>
+  <script src="https://jsdelivr.net"></script>
+  <style>
+    body { background-color: var(--tg-theme-bg-color, #121212); color: var(--tg-theme-text-color, #ffffff); }
+    .card { background-color: var(--tg-theme-secondary-bg-color, #1e1e1e); }
+  </style>
+</head>
+<body class="p-4 font-sans select-none">
+
+  <!-- Загрузчик -->
+  <div id="loader" class="text-center py-20 text-xl font-bold animate-pulse text-emerald-400">Загрузка данных фитнес-зала...</div>
+
+  <!-- ИНТЕРФЕЙС КЛИЕНТА -->
+  <div id="client-ui" class="hidden space-y-6">
+    <div class="flex justify-between items-center card p-2 rounded-xl border border-neutral-800">
+      <button onclick="switchTab('cabinet')" id="btn-tab-cabinet" class="flex-1 text-center py-2 font-bold text-sm text-emerald-400">💼 Кабинет</button>
+      <button onclick="switchTab('booking')" id="btn-tab-booking" class="flex-1 text-center py-2 font-bold text-sm opacity-60">🏋️ Запись</button>
+      <button onclick="switchTab('tariffs')" id="btn-tab-tariffs" class="flex-1 text-center py-2 font-bold text-sm opacity-60">💳 Тарифы</button>
+    </div>
+
+    <!-- Вкладка Кабинет -->
+    <div id="tab-cabinet" class="space-y-4">
+      <div class="card p-4 rounded-2xl shadow-xl space-y-3 border border-neutral-800/50">
+        <h2 class="text-xl font-black text-neutral-200">Ваш Профиль</h2>
+        <p class="text-sm opacity-80">Имя: <span id="c-name" class="font-bold text-emerald-400"></span></p>
+        <div class="grid grid-cols-2 gap-2 bg-black/30 p-3 rounded-xl text-center">
+          <div><p class="text-[10px] uppercase opacity-50 tracking-wider">Баланс баллов</p><p id="c-balance" class="text-2xl font-black text-emerald-400">0.0</p></div>
+          <div><p class="text-[10px] uppercase opacity-50 tracking-wider">Срок до</p><p id="c-date" class="text-sm font-bold pt-1 text-neutral-300">-</p></div>
+        </div>
+
+        <!-- Слайдер До/После -->
+        <div class="space-y-2 pt-2">
+          <p class="text-xs font-bold opacity-70">Ваш Прогресс (До / После)</p>
+          <div class="relative w-full h-48 overflow-hidden rounded-xl bg-neutral-800 shadow-inner">
+            <img id="img-after" class="absolute inset-0 w-full h-full object-cover" src="https://unsplash.com">
+            <div id="img-do-wrap" class="absolute inset-y-0 left-0 overflow-hidden w-1/2 border-r-2 border-emerald-400 z-10">
+              <img id="img-before" class="absolute inset-0 w-full h-full object-cover" src="https://unsplash.com">
+            </div>
+            <input type="range" min="0" max="100" value="50" class="absolute inset-x-0 bottom-3 w-[90%] mx-auto accent-emerald-400 z-20 opacity-80 hover:opacity-100 transition" oninput="document.getElementById('img-do-wrap').style.width = this.value + '%'">
+          </div>
+        </div>
+        <button id="freeze-btn" onclick="requestFreeze()" class="w-full bg-cyan-600 active:scale-95 hover:bg-cyan-700 py-3 rounded-xl text-xs font-bold transition shadow-md shadow-cyan-950/50">❄️ Заморозить абонемент (на 14 дней)</button>
+      </div>
+    </div>
+
+    <!-- Вкладка Запись -->
+    <div id="tab-booking" class="hidden card p-4 rounded-2xl space-y-4 border border-neutral-800/50">
+      <h2 class="text-lg font-bold">Выберите параметры тренировки</h2>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="d-1" onclick="changeDuration('1.0')" class="bg-emerald-500 text-black py-2.5 rounded-xl font-bold text-xs shadow-md">1 час (1.0 б.)</button>
+        <button id="d-15" onclick="changeDuration('1.5')" class="bg-neutral-800 py-2.5 rounded-xl font-bold text-xs">1.5 часа (1.5 б.)</button>
+      </div>
+      <div class="space-y-2">
+        <p class="text-xs font-bold opacity-60">Доступные слоты времени:</p>
+        <div id="slots-grid" class="grid grid-cols-3 gap-2"></div>
+      </div>
+      <div class="space-y-1">
+        <p class="text-xs font-bold opacity-60">Комментарий тренеру:</p>
+        <input type="text" id="b-comment" placeholder="Например: болит колено / силовая тренировка" class="w-full p-3 rounded-xl bg-black/20 text-sm border border-neutral-700 focus:outline-none focus:border-emerald-500 transition">
+      </div>
+      <button id="action-btn" onclick="executeBooking()" class="w-full bg-emerald-500 text-black py-3.5 rounded-xl font-black text-center transition active:scale-95 shadow-lg shadow-emerald-950/40">Оформить запись</button>
+    </div>
+
+    <!-- Вкладка Тарифы -->
+    <div id="tab-tariffs" class="hidden space-y-3">
+      <div class="card p-4 rounded-2xl border border-neutral-800 shadow-md">
+        <div class="flex justify-between font-bold text-md"><span>Пакет «Старт» (4 занятия)</span><span class="text-emerald-400">10 000 ₽</span></div>
+        <p class="text-xs opacity-50 mt-1">Срок действия: 2 месяца • Базовый курс адаптации</p>
+      </div>
+      <div class="card p-4 rounded-2xl border border-emerald-500/30 bg-emerald-950/5 shadow-md">
+        <div class="flex justify-between font-bold text-md"><span>Пакет «Прогресс» (8 занятий)</span><span class="text-emerald-400">18 500 ₽</span></div>
+        <p class="text-xs opacity-50 mt-1">Срок действия: 2 месяца • Самый популярный выбор</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ИНТЕРФЕЙС АДМИНИСТРАТОРА (ТРЕНЕРА) -->
+  <div id="admin-ui" class="hidden space-y-6">
+    <h1 class="text-2xl font-black text-amber-400 tracking-tight">Панель Управления</h1>
+    
+    <!-- Фин. Дашборд -->
+    <div class="grid grid-cols-2 gap-2" id="fin-box"></div>
+
+    <!-- Тренировки на сегодня -->
+    <div class="card p-4 rounded-2xl space-y-3 border border-neutral-800/50">
+      <h2 class="text-sm font-bold text-amber-400 uppercase tracking-wider">Дневник занятий на сегодня</h2>
+      <div id="lessons-today" class="space-y-2 text-xs"></div>
+    </div>
+
+    <!-- Клиентская База -->
+    <div class="card p-4 rounded-2xl space-y-3 border border-neutral-800/50">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-300">База спортсменов клуба</h2>
+      <input type="text" placeholder="Поиск по имени..." oninput="filterAthletes(this.value)" class="w-full p-3 rounded-xl bg-black/30 border border-neutral-700 text-sm focus:outline-none focus:border-amber-500">
+      <div id="athletes-list" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    let serverData = {};
+    let activeSlot = null;
+    let duration = "1.0";
+    
+    // ВСТАВЬТЕ СЮДА ВАШ URL ВЕБ-ПРИЛОЖЕНИЯ ПОСЛЕ ПЕРВОГО РАЗВЕРТЫВАНИЯ ИЗ GOOGLE APPS SCRIPT
+    const webAppUrl = "ССЫЛКА_НА_ВАШ_ВЕБ_СКРИПТ"; 
+
+    window.onload = function() {
+      const uid = tg.initDataUnsafe?.user?.id || 123456789;
+      fetch(webAppUrl, { method: "POST", body: JSON.stringify({ action: "get_data", user_id: uid }) })
+      .then(r => r.json())
+      .then(data => {
+        serverData = data;
+        document.getElementById("loader").remove();
+        if (data.isAdmin) { buildAdmin(); } else { buildClient(); }
+      }).catch(err => {
+        document.getElementById("loader").innerText = "Ошибка загрузки данных. Проверьте webAppUrl.";
+      });
+    };
+
+    function buildClient() {
+      document.getElementById("client-ui").classList.remove("hidden");
+      document.getElementById("c-name").innerText = serverData.client.name;
+      document.getElementById("c-balance").innerText = parseFloat(serverData.client.balance).toFixed(1);
+      
+      if (serverData.client.active_until) {
+        const d = new Date(serverData.client.active_until);
+        document.getElementById("c-date").innerText = d.toLocaleDateString("ru-RU");
+      } else {
+        document.getElementById("c-date").innerText = "Нет абонемента";
+      }
+
+      if(serverData.client.photo_do) document.getElementById("img-before").src = serverData.client.photo_do;
+      if(serverData.client.photo_after) document.getElementById("img-after").src = serverData.client.photo_after;
+
+      if (Number(serverData.client.frozen) === 1) {
+        const fBtn = document.getElementById("freeze-btn");
+        fBtn.disabled = true; fBtn.innerText = "❄️ Пакет уже заморожен"; fBtn.className = "w-full bg-neutral-800 py-3 rounded-xl text-xs font-bold cursor-not-allowed text-neutral-500 border border-neutral-700/30";
+      }
+      
+      updateClientSlots();
+    }
+
+    function updateClientSlots() {
+      const grid = document.getElementById("slots-grid");
+      grid.innerHTML = "";
+      if(serverData.slots.length === 0) { grid.innerHTML = "<p class='text-xs opacity-50 col-span-3 text-center py-4'>Свободных окон на ближайшее время нет</p>"; return; }
+
+      serverData.slots.forEach(s => {
+        const b = document.createElement("button");
+        b.className = "p-2.5 text-center text-xs font-bold bg-neutral-900 border border-neutral-800 rounded-xl transition active:scale-95";
+        
+        // Красивое форматирование даты
+        const dateParts = s.date.split("-");
+        b.innerHTML = `<span class="opacity-60 block text-[10px] font-normal">${dateParts[2]}.${dateParts[1]}</span><span class="text-sm font-black">${s.time}</span>`;
+        
+        b.onclick = () => {
+          document.querySelectorAll("#slots-grid button").forEach(x => x.classList.remove("border-emerald-400", "bg-emerald-950/40"));
+          b.classList.add("border-emerald-400", "bg-emerald-950/40");
+          activeSlot = s.id;
+        };
+        grid.appendChild(b);
+      });
+    }
+
+function changeDuration(dur) {
+  duration = dur;
+  document.getElementById("d-1").className = dur === "1.0" ? "bg-emerald-500 text-black py-2.5 rounded-xl font-bold text-xs shadow-md" : "bg-neutral-800 py-2.5 rounded-xl font-bold text-xs";
+  document.getElementById("d-15").className = dur === "1.5" ? "bg-emerald-500 text-black py-2.5 rounded-xl font-bold text-xs shadow-md" : "bg-neutral-800 py-2.5 rounded-xl font-bold text-xs";
+  const actionBtn = document.getElementById("action-btn");
+  if (Number(serverData.client.balance) < (dur === "1.5" ? 1.5 : 1.0)) {
+    actionBtn.innerText = `Оплатить ЮKassa (${dur === '1.5' ? '4050' : '2700'} ₽)`;
+    actionBtn.className = "w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-black text-center transition active:scale-95 shadow-lg shadow-blue-950/40";
+  } else {
+    actionBtn.innerText = "Оформить запись";
+    actionBtn.className = "w-full bg-emerald-500 text-black py-3.5 rounded-xl font-black text-center transition active:scale-95";
+  }
+}
+
+function executeBooking() {
+  if(!activeSlot) {
+    alert("Пожалуйста, выберите удобное время тренировки!");
+    return;
+  }
+  const uid = tg.initDataUnsafe?.user?.id || 123456789;
+  const actionBtn = document.getElementById("action-btn");
+  actionBtn.innerText = "Связь со скриптом...";
+  actionBtn.disabled = true;
+  fetch(webAppUrl, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "book",
+      slot_id: activeSlot,
+      user_id: uid,
+      user_name: serverData.client.name,
+      duration: duration,
+      comment: document.getElementById("b-comment").value
+    })
+  })
+  .then(r => r.json()).then(res => {
+    if(res.status === "success") {
+      tg.close();
+    } else {
+      alert(res.message);
+      location.reload();
+    }
+  });
+}
+
+function requestFreeze() {
+  if(!confirm("Вы уверены, что хотите активировать заморозку пакета на 14 дней? Доступно 1 раз.")) return;
+  const uid = tg.initDataUnsafe?.user?.id || 123456789;
+  fetch(webAppUrl, {
+    method: "POST",
+    body: JSON.stringify({ action: "freeze", user_id: uid })
+  }).then(() => location.reload());
+}
+
+function switchTab(t) {
+  ['cabinet', 'booking', 'tariffs'].forEach(x => {
+    document.getElementById('tab-'+x).classList.add('hidden');
+    document.getElementById('btn-tab-'+x).classList.remove('text-emerald-400');
+    document.getElementById('btn-tab-'+x).classList.add('opacity-60');
+  });
+  document.getElementById('tab-'+t).classList.remove('hidden');
+  document.getElementById('btn-tab-'+t).classList.add('text-emerald-400');
+  document.getElementById('btn-tab-'+t).classList.remove('opacity-60');
+}
+
+// === АДМИНКА ТРЕНЕРА ===
+function buildAdmin() {
+  document.getElementById("admin-ui").classList.remove("hidden");
+  const f = serverData.adminData.finance;
+  document.getElementById("fin-box").innerHTML = `
+    <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">Всего (месяц)</p><p p class="text-lg font-black text-amber-400">${f.total} ₽</p></div>
+    <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">ЮKassa</p><p class="text-lg font-black text-blue-400">${f.yandex} ₽</p></div>
+    <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">Наличные</p><p class="text-lg font-black text-green-400">${f.cash} ₽</p></div>
+    <div class="card p-3 rounded-xl border border-neutral-800/50"><p class="text-[10px] opacity-50 uppercase tracking-wider">Карты Сбер/Т</p><p class="text-lg font-black text-purple-400">${f.sber + f.tbank} ₽</p></div>
+  `;
+  
+  const tDiv = document.getElementById("lessons-today");
+  tDiv.innerHTML = serverData.adminData.recordsToday.length === 0 ? "Сегодня тренировок в графике нет" : "";
+  
+  serverData.adminData.recordsToday.forEach(r => {
+    tDiv.innerHTML += `
+      <div class="bg-black/20 p-3 rounded-xl flex justify-between items-center card border border-neutral-800/40">
+        <div>
+          <span class="text-amber-400 font-bold block text-sm">${r}</span>
+          <span class="text-neutral-300 font-medium">${r}</span>
+          <span class="opacity-50 block text-[11px] mt-0.5">Комм: ${r || 'нет'}</span>
+        </div>
+        <button onclick="closeLesson(${r})" class="bg-amber-500 text-black px-3 py-1.5 rounded-lg font-black transition active:scale-95 shadow-md shadow-amber-950/20">Завершить</button>
+      </div>
+    `;
+  });
+  filterAthletes("");
+}
+
+function filterAthletes(q) {
+  const list = document.getElementById("athletes-list");
+  list.innerHTML = "";
+  const filtered = serverData.adminData.clients.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
+  
+  filtered.forEach(c => {
+    let historyHtml = c.history.map(h => `
+      <li class="border-b border-neutral-800/30 pb-1 last:border-0">• <b class="text-neutral-300">${h.date} (${h.time}):</b> <span class="opacity-80">Программа: ${h.prog || 'нет'}, Самосв: ${h.cond || 'нет'}</span></li>
+    `).join("");
+    
+    list.innerHTML += `
+      <div class="p-3.5 bg-neutral-900 border border-neutral-800/80 rounded-xl space-y-2 text-xs card">
+        <div class="flex justify-between font-bold text-sm border-b border-neutral-800 pb-1.5"><span>${c.name}</span><span class="text-emerald-400">Баллы: ${c.balance}</span></div>
+        <p class="opacity-70"><span class="font-semibold text-neutral-400">🎯 Цель:</span> ${c.target || 'Не указана'}</p>
+        <p class="text-red-400 font-medium"><span class="font-semibold text-neutral-400">⚠️ Анамнез / Противопоказания:</span> <span id="an-${c.tg_id}" class="underline decoration-red-900/50">${c.anamnesis || 'Противопоказаний нет'}</span></p>
+        <button onclick="changeAnamnesis(${c.tg_id})" class="text-blue-400 font-bold hover:text-blue-300 transition text-[11px]">+ Редактировать карточку здоровья</button>
+        <div class="bg-black/30 p-2.5 rounded-xl mt-1 space-y-1"><p class="font-bold opacity-40 text-[10px] uppercase tracking-wider">История последних 5 тренировок:</p><ul class="space-y-1.5 text-[11px] opacity-80">${historyHtml || '<span class="opacity-40">История тренировок в базе пуста</span>'}</ul></div>
+      </div>
+    `;
+  });
+}
+
+function closeLesson(sid) {
+  const p = prompt("Что выполняли на тренировке (Упражнения, веса, подходы)?");
+  const c = prompt("Оцените самочувствие и пульсовую зону клиента:");
+  if(p && c) {
+    fetch(webAppUrl, {
+      method: "POST",
+      body: JSON.stringify({ action: "complete_lesson", slot_id: sid, program: p, condition: c })
+    })
+    .then(() => {
+      alert("Запись успешно внесена в архив дневника атлета!");
+      buildAdmin();
+    });
+  }
+}
+
+function changeAnamnesis(cid) {
+  const a = prompt("Введите новые данные ограничений и противопоказаний здоровья:");
+  if(a !== null) {
+    fetch(webAppUrl, {
+      method: "POST",
+      body: JSON.stringify({ action: "update_anamnesis", client_id: cid, anamnesis: a })
+    })
+    .then(() => document.getElementById("an-"+cid).innerText = a || 'Противопоказаний нет');
+  }
+}
